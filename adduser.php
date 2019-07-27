@@ -93,40 +93,102 @@ License: You must have a valid license purchased only from themeforest(the above
 						<?php
 						include "db.php";
 
+							//////////////////////////////// Fields Sanitization ////////////////////////////////////////////////////
+
+							$filteredPhone = filter_var($_POST['phone'], FILTER_SANITIZE_STRING);
+
+							$filteredFirstName = filter_var($_POST['firstname'], FILTER_SANITIZE_STRING);
+
+							$filteredSecondName = filter_var($_POST['secondname'], FILTER_SANITIZE_STRING);
+
+							$filteredThirdName = filter_var($_POST['thirdname'], FILTER_SANITIZE_STRING);
+
+							$filteredLastName = filter_var($_POST['lastname'], FILTER_SANITIZE_STRING);
+
+							$filteredAddress = filter_var($_POST['address'], FILTER_SANITIZE_STRING);
+
+							$filteredNationalno = filter_var($_POST['nationalno'], FILTER_SANITIZE_STRING);
+
+							$filteredUser = filter_var($_POST['username'], FILTER_SANITIZE_STRING);
+
+							if(empty($_POST['password1'])){
+								$formErr[] = "password can\'t be empty";
+							}
+
+							if(sha1($_POST['password1']) !== sha1($_POST['password2'])){
+								$formErr[] = "password fields must match";
+							}
+
+							//////////////////// Password Encryption ///////////////////////////////////////////////////////////////
+							$encryptedPass = sha1($_POST['password1']);
+
+							$filteredEmail = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
+
+							/////////////////// Email Validation //////////////////////////////////////////////////////////
+							if(filter_var($filteredEmail, FILTER_VALIDATE_EMAIL) != true){
+								$formErr[] = "please enter a valid email";
+							}
+
+
 							try{
-							    $query = "INSERT INTO `user`(`user_type`, `national_no`, `first_name`,
-										`second_name`, `third_name`, `last_name`, `address` )
-										 VALUES (:user_type, :national_no, :first_name, :second_name,
-											 :third_name, :last_name, :address)";
-/*
-											echo  $_POST['usertype']."<br>";
-		 									echo  $_POST['nationalno']."<br>";
-		 									echo  $_POST['firstname']."<br>";
-		 									echo  $_POST['secondname']."<br>";
-		 									echo  $_POST['thirdname']."<br>";
-		 									echo  $_POST['lastname']."<br>";
-		 									echo  $_POST['address']."<br>";
-*/
+
+								//////////////////////// Check if email or username already exist /////////////////////////
+								$stmt = $DB_con->prepare("SELECT username FROM user WHERE username = ?");
+					            $stmt->execute(array($filteredUser));
+					            $row1 = $stmt->rowCount();
+
+					            $stmt = $DB_con->prepare("SELECT email FROM user WHERE email = ?");
+					            $stmt->execute(array($filteredEmail));
+					            $row2 = $stmt->rowCount();
+
+					            if($row2 > 0){
+					                $formErr[] = "This email is already registered";
+					            }if ($row1 > 0) {
+					                $formErr[] = "Username is already taken";
+					            }
+
+								if(empty($formErr)){
+
+								    $query = "INSERT INTO `user`(`user_type`, `national_no`, `first_name`,
+											`second_name`, `third_name`, `last_name`, `gender`, `birthday`, `address`, `phone_number`, `email`, `username`, `password` )
+											 VALUES (:user_type, :national_no, :first_name, :second_name,
+												 :third_name, :last_name, :gender, :birthday, :address, :phone_number, :email, :username, :password)";
 
 
-							    $stmt = $DB_con->prepare($query);
-							    $stmt->bindParam(':user_type',  $_POST['usertype']);
-									$stmt->bindParam(':national_no',  $_POST['nationalno']);
-									$stmt->bindParam(':first_name',  $_POST['firstname']);
-									$stmt->bindParam(':second_name',  $_POST['secondname']);
-									$stmt->bindParam(':third_name',  $_POST['thirdname']);
-									$stmt->bindParam(':last_name',  $_POST['lastname']);
-									$stmt->bindParam(':address',  $_POST['address']);
+								    $stmt = $DB_con->prepare($query);
+								    $stmt->bindParam(':user_type',  $_POST['usertype']);
+										$stmt->bindParam(':national_no',  $filteredNationalno);
+										$stmt->bindParam(':first_name',  $filteredFirstName);
+										$stmt->bindParam(':second_name',  $filteredSecondName);
+										$stmt->bindParam(':third_name',  $filteredThirdName);
+										$stmt->bindParam(':last_name',  $filteredLastName);
+										$stmt->bindParam(':gender',  $_POST['gender']);
+										$stmt->bindParam(':birthday',  $_POST['birthday']);
+										$stmt->bindParam(':address',  $filteredAddress);
+										$stmt->bindParam(':phone_number',  $filteredPhone);
+										$stmt->bindParam(':email',  $filteredEmail);
+										$stmt->bindParam(':username',  $filteredUser);
+										$stmt->bindParam(':password',  $encryptedPass);
 
-							    if ($stmt->execute())  //
-							       {
- 										  echo "successful";
-						      	}
+
+								    if ($stmt->execute())  //NO ERRORS
+								    {
+										echo "<h5 style='color:green;'>successful<h5>";
+							      	}
+								}
+								else{	//THERE's ERRORS
+
+									echo "<h5 style='color:red;'>Unsuccessful:</h5> <br>";
+
+									foreach($formErr as $formErr) {
+    									echo "$formErr, <br>";
 									}
-							  catch (Exception $ex)
-							    {
-							       echo $ex->getMessage();
-							    }
+								}
+							}
+						  catch (Exception $ex)
+						    {
+						       echo $ex->getMessage();
+						    }
 
 							?>
 
